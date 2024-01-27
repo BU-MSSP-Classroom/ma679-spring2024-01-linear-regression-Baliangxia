@@ -1,6 +1,6 @@
 ---
 title: "Regression"
-author: "Your Name"
+author: "Chenghao Xia"
 date: "2022-12-21"
 output: html_document
 ---
@@ -291,7 +291,7 @@ Here are few rules:
 - You need to explain why you added each variable.
 
 ```{r,eval=FALSE,echo=show_code}
-lmfit_2008<- # ["your model here"] # use ames_raw_2008
+lmfit_2008<- lm(log(SalePrice)~`Gr Liv Area`+`Garage Cars`+`Overall Qual`+`Year Built`,ames_raw_2008)
 ```
 
 When you decide on your model use the following to come up with your test loss.
@@ -307,21 +307,19 @@ Try to answer the following additional questions.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+lmfit_2008<- lm(log(SalePrice)~`Gr Liv Area`+`Garage Cars`+`Overall Qual`+`Year Built`,ames_raw_2008)
+summary(lmfit_2008)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
 
-
+1. The residuals show a relatively small spread, with value closed to zero.
+2. The coefficients are significant given the small value of the p-value
+3. The R-squared value is 0.8232 which means 82.32% of the variance in the target variable is explained by the model.
 ~~~
-
 - Should you include all the predictors? Why?
-
-
 Your code:
 ```{r,echo=TRUE}
 #
@@ -331,11 +329,11 @@ Your code:
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
 
-
+1.Including all the predictors will lead to overfitting, overfit models perform well on training data but may not generalize well to new data. 
+2.A simpler model with fewer predictors is often more interpretable.
+3.Including all predictors may result in a computationally expensive model, especially if you have a large number of predictors.
 ~~~
-
 - What interaction makes sense?  Does your model indicate signs of interaction?
 
 
@@ -348,58 +346,75 @@ Your code:
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
 
-
+I try to add the interaction terms in the model, but the p-value is always too big which makes the model worse. So I just use the model I have now which has no interaction term.
 ~~~
-
 - Is there evidence of non-linear association between any of the predictors and the response? To answer this question, for each predictor, fit a model with polynomial terms up to 3rd order.
-
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+ames_raw_2008$`Garage Cars` <- replace(ames_raw_2008$`Garage Cars`, is.na(ames_raw_2008$`Garage Cars`), 0)
+polyfit_2008_GrLivArea <- lm(log(SalePrice) ~ poly(`Gr Liv Area`, 3), data = ames_raw_2008)
+polyfit_2008_GarageCars <- lm(log(SalePrice) ~ poly(`Garage Cars`, 3), data = ames_raw_2008)
+polyfit_2008_OverallQual <- lm(log(SalePrice) ~ poly(`Overall Qual`, 3), data = ames_raw_2008)
+polyfit_2008_YearBuilt <- lm(log(SalePrice) ~ poly(`Year Built`, 3), data = ames_raw_2008)
+
+summary(polyfit_2008_GrLivArea)
+summary(polyfit_2008_GarageCars)
+summary(polyfit_2008_OverallQual)
+summary(polyfit_2008_YearBuilt)
+
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
-
+while the models for Garage Cars and Overall Qual indicate evidence of non-linear associations, the models for Gr Liv Area and Year Built suggest that a simpler linear or quadratic model might be more appropriate. 
 ~~~
-
 - What are the top 5 houses that are most over priced based on your model?
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+lmfit_2008<- lm(log(SalePrice)~`Gr Liv Area`+`Garage Cars`+`Overall Qual`+`Year Built`,ames_raw_2008)
+predictions <- exp(predict(lmfit_2008, newdata = ames_raw_2008))
+
+residuals <- ames_raw_2008$SalePrice - predictions
+
+percentage_difference <- (residuals / ames_raw_2008$SalePrice) * 100
+
+overpriced_houses <- data.frame(
+  Order = ames_raw_2008$Order,
+  Actual_Price = ames_raw_2008$SalePrice,
+  Predicted_Price = predictions,
+  Residual = residuals,
+  Percentage_Difference = percentage_difference
+)
+overpriced_houses <- overpriced_houses[order(-overpriced_houses$Percentage_Difference), ]
+
+top_5_overpriced_houses <- head(overpriced_houses, 5)
+print(top_5_overpriced_houses)
+
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
 
-
+We have house order number as 2257,1641,1638,2075,2309. These houses have the highest percentage differences between their actual prices and the prices predicted by your model, indicating that they are potentially overpriced according to the model's predictions.
 ~~~
-
 - What are the top 5 most good deal based on your model?
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+good_deals <- overpriced_houses[order(overpriced_houses$Percentage_Difference), ]
+top_5_good_deals <- head(good_deals, 5)
+print(top_5_good_deals)
+
 ```
 
 Your answer:
-
 ~~~
-Please write your answer in full sentences.
-
-
+We have house order number as 2181,2182,2044,2881,1783.These houses have the most negative percentage differences between their actual prices and the prices predicted by your model, indicating that they are potentially good deals based on the model's predictions.The negative percentage differences suggest that these houses are priced lower than what the model predicts, making them potential bargains.
 ~~~
 
 ## Problem Set
@@ -410,36 +425,41 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+library(ISLR)
+lm_model <- lm(mpg ~ horsepower, data = Auto)
+summary(lm_model)
+new_data <- data.frame(horsepower = 98)
+predict_interval <- predict(lm_model, newdata = new_data, interval = "confidence", level = 0.95)
+predict_interval
 ```
 
-Your answer:
-
 ~~~
-Please write your answer in full sentences.
-
-
-~~~
-
-
 Comment on the output.
 For example:
 i. Is there a relationship between the predictor and the response?
 
+Yes, there is a relationship between mpg and horsepower, since the p-value is very small.
+
 ii. How strong is the relationship between the predictor and the response?
+
+The multiple R-squared value is 0.6059, indicating that approximately 60.59% of the variability in mpg is explained by horsepower.
 
 iii. Is the relationship between the predictor and the response positive or negative?
 
+The relationship is negative. This is evident from the negative coefficient estimate for horsepower (-0.157845). As horsepower increases, mpg tends to decrease.
+
 iv. What is the predicted mpg associated with a horsepower of 98? What are the associated 95% confidence and prediction intervals?
 
+The predicted mpg is 24.4678, and the 95% confidence interval is [23.97308,24.96108]
+
+~~~
 (b) Plot the response and the predictor. Use the `abline()` function to display the least squares regression line.
 
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+plot(Auto$horsepower, Auto$mpg, xlab = "Horsepower", ylab = "MPG", main = "Scatter Plot with Regression Line")
+abline(lm_model, col = "red")
 ```
 
 Your answer:
@@ -454,9 +474,12 @@ Please write your answer in full sentences.
 (c) Use the `plot()` function to produce diagnostic plots of the least squares regression fit. Comment on any problems you see with the fit.
 
 Your code:
-```{r,echo=TRUE}
-#
-#
+```{r,fig.width=9,fig.height=7,echo=show_code}
+par(mfrow = c(2, 2))  
+plot(lm_model, pch = 16, col = "blue")
+title("Diagnostic Plots for Least Squares Regression Fit")
+par(mfrow = c(1, 1))
+
 ```
 
 Your answer:
@@ -474,114 +497,125 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+pairs(Auto)
+
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
 
+Each scatterplot shows the relationship between two variables, and the diagonal contains histograms for each variable.
 
 ~~~
-
-
 (b) Compute the matrix of correlations between the variables using
 the function cor(). You will need to exclude the name variable,
 cor() which is qualitative.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+quantitative_vars <- Auto[, sapply(Auto, is.numeric)]
+cor_matrix <- cor(quantitative_vars)
+print(cor_matrix)
 ```
 
 Your answer:
 
-~~~
+~~
 Please write your answer in full sentences.
 
 
 ~~~
-
 
 (c) Use the lm() function to perform a multiple linear regression
 with mpg as the response and all other variables except name as
 the predictors. Use the summary() function to print the results.
-
+~~~
 Your code:
 ```{r,echo=TRUE}
-#
-#
+lm_model <- lm(mpg ~ . - name, data = Auto)
+summary(lm_model)
 ```
 
 Your answer:
-
-~~~
-Please write your answer in full sentences.
-
 
 ~~~
 
 
 Comment on the output. For instance:
 i. Is there a relationship between the predictors and the response?
+
+The overall F-statistic is highly significant (p-value < 2.2e-16), indicating a significant relationship between the predictors and the response variable (mpg). This suggests that the model is statistically significant in predicting the response.
+
 ii. Which predictors appear to have a statistically significant relationship to the response?
+
+The p-value of Intercept, Displacement, Weight, Year, and Origin are highly siginificant.
 
 iii. What does the coefficient for the year variable suggest?
 
+The coefficient for the year variable represents the expected change in mpg for a one-unit increase in the year, holding other variables constant.
+
+~~~
 (d) Use the plot() function to produce diagnostic plots of the linear regression fit. Comment on any problems you see with the fit. Do the residual plots suggest any unusually large outliers? Does the leverage plot identify any observations with unusually high leverage?
 
 Your code:
-```{r,echo=TRUE}
-#
-#
+```{r,fig.width=9,fig.height=7,echo=show_code}
+par(mfrow = c(2, 2))  
+plot(lm_model, 1, main = "Residuals vs Fitted")
+plot(lm_model, 2, main = "Normal Q-Q Plot")
+plot(lm_model, 3, main = "Scale-Location Plot")
+plot(lm_model, 5, main = "Residuals vs Leverage")
+par(mfrow = c(1, 1))
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
 
+In the Residual vs Fitted plot, it seems like all points are around the horizontal line and no pattern.
+In the QQ plot, we can see there are some points above the line which means they have larger errors than expected.
+In the Scale-Location Plot, it seems like there is no pattern.
+In the Residual vs Leverage, there are are several points outside the dashed line.
 
 ~~~
-
 (e) Use the * and : symbols to fit linear regression models with interaction effects. Why did you add the interaction?  Explain using the context of the problem.  Do any interactions appear to be statistically significant?  
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+lm_model2 <- lm(mpg ~ weight+year+weight*year, data = Auto)
+summary(lm_model2)
 ```
 
 Your answer:
-
 ~~~
-Please write your answer in full sentences.
+There is a relationship, as indicated by the significant p-values for the Intercept, weight, year, and the interaction term (weight:year).
 
-
+The interaction term (weight:year) is added to account for the possibility that the effect of weight on mpg depends on the value of the year. In other words, the relationship between weight and mpg is not constant across different years.
+The interaction term (weight:year) is statistically significant, as indicated by the low p-value (‘***’).
 ~~~
-
-
 (f) Try a few different transformations of the variables, such as $log(X)$, $\sqrt{X}$, $X^2$. Comment on your findings.
-
-
+```{r}
+lm_model <- lm(log(mpg) ~ . - name, data = Auto)
+summary(lm_model)
+```
+Your Findings
+~~
+The log-transformed model appears to be a better fit, with lower residuals and a higher R-squared value.
+~~
 This question should be answered using the Carseats data set.
 (a) Fit a multiple regression model to predict Sales using Price, Urban, and US.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+model <- lm(Sales ~ Price + Urban + US, data = Carseats)
+
+summary(model)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
-
+Price and US are found to be significant predictors of Sales, while the presence of an Urban environment does not appear to have a significant effect. The model explains approximately 23.35% of the variability in Sales.
 ~~~
 
 (b) Provide an interpretation of each coefficient in the model. Be careful—some of the variables in the model are qualitative!
@@ -595,9 +629,10 @@ Your code:
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
-
+The intercept represents the estimated Sale is 13.04 when all predictor variables are zero. 
+For each unit increase in Price, Sales are estimated to decrease by approximately 0.0545 units.
+The coefficient for UrbanYes represents the change in Sales when the Urban variable changes from 0 (No) to 1 (Yes).However, this coefficient is not statistically significant (p = 0.936), so we don't draw meaningful conclusions about its impact on Sales.
+The coefficient for USYes represents the change in Sales when the US variable changes from 0 (No) to 1 (Yes). 
 ~~~
 
 (c) Write out the model in equation form, being careful to handle the qualitative variables properly.
@@ -611,8 +646,7 @@ Your code:
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+Sales=13.04−0.0545×Price−0.0219×Urban+1.20×US
 
 ~~~
 
@@ -621,8 +655,7 @@ Please write your answer in full sentences.
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+Therefore, we can reject the null hypothesis for the coefficients associated with Price Price and US, indicating that changes in these variables are associated with statistically significant changes in the Sales, while we cannot reject the null hypothesis for Urban.
 
 ~~~
 
@@ -630,15 +663,14 @@ Please write your answer in full sentences.
 
 Your code:
 ```{r,echo=TRUE}
-#
-#
+smaller_model <- lm(Sales ~ Price + US, data = Carseats)
+summary(smaller_model)
 ```
 
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+The smaller model, considering only Price and US as predictors, still provides a good fit to the data, and both predictors are statistically significant in predicting Sales. The store's location in the US and the price of the car seat are associated with changes in Sales.
 
 ~~~
 
@@ -649,8 +681,7 @@ Please write your answer in full sentences.
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+The Adjusted R-squared for the model in (a) is higher (0.8182) than the one in (e) (0.2354). This indicates that the model in (a), which includes Price, Urban, and US as predictors, fits the data better compared to the smaller model in (e), which only includes Price and US. The larger model explains a higher proportion of the variance in Sales, suggesting that the additional predictors in (a) contribute to a better fit.
 
 ~~~
 
@@ -665,19 +696,30 @@ Your code:
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+Intercept: [11.788, 14.273]
+Price: [-0.065, -0.044]
+US: [0.691, 1.709]
 
 ~~~
 
 (h) Is there evidence of outliers or high leverage observations in the model from (e)?
 
-
+Your code:
+```{r,fig.width=9,fig.height=7,echo=show_code}
+par(mfrow = c(2, 2))  
+plot(smaller_model, 1, main = "Residuals vs Fitted")
+plot(smaller_model, 2, main = "Normal Q-Q Plot")
+plot(smaller_model, 3, main = "Scale-Location Plot")
+plot(smaller_model, 5, main = "Residuals vs Leverage")
+par(mfrow = c(1, 1))
+```
 Your answer:
 
 ~~~
-Please write your answer in full sentences.
-
+In the Residual vs Fitted plot, it seems like all points are around the horizontal line and no pattern.
+In the QQ plot, we can see there are no points above the line 
+In the Scale-Location Plot, it seems like there is no pattern.
+In the Residual vs Leverage, there are are several points outside the dashed line.
 
 ~~~
 
